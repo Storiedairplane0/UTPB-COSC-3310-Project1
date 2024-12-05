@@ -166,67 +166,165 @@ public class UInt {
 
     public void or(UInt u) {
         // TODO Complete the bitwise logical OR method
+        for (int i = 0; i < Math.min(this.length, u.length); i++) {
+            this.bits[this.length - i - 1] |= u.bits[u.length - i - 1];
+        }
+
         return;
     }
 
+
     public static UInt or(UInt a, UInt b) {
         // TODO Complete the static OR method
-        return null;
+        UInt temp = a.clone();
+        temp.or(b);
+        return temp;
     }
 
     public void xor(UInt u) {
         // TODO Complete the bitwise logical XOR method
+        for (int i = 0; i < Math.min(this.length, u.length); i++) {
+            this.bits[this.length - i - 1] ^= u.bits[u.length - i - 1];
+        }
         return;
+
+
     }
+
+
+
 
     public static UInt xor(UInt a, UInt b) {
         // TODO Complete the static XOR method
-        return null;
+        UInt temp = a.clone();
+        temp.xor(b);
+        return temp;
     }
 
     public void add(UInt u) {
-        // TODO Using a ripple-carry adder, perform addition using a passed UINT object
-        // The result will be stored in this.bits
-        // You will likely need to create a couple of helper methods for this.
-        // Note this one, like the bitwise ops, also needs to be aligned on the 1s place.
-        // Also note this may require increasing the length of this.bits to contain the result.
-        return;
+        boolean carry = false;
+        int maxLength = Math.max(this.length, u.length) + 1;
+        boolean[] result = new boolean[maxLength];
+
+        // Iterate through each bit, starting from the least significant bit
+        for (int i = 0; i < maxLength - 1; i++) {
+            boolean aBit = i < this.length ? this.bits[this.length - 1 - i] : false;
+            boolean bBit = i < u.length ? u.bits[u.length - 1 - i] : false;
+
+            // Sum bits with carry
+            result[maxLength - 1 - i] = aBit ^ bBit ^ carry;
+            carry = (aBit && bBit) || (carry && (aBit ^ bBit));
+        }
+
+        // Handle the final carry bit if it exists
+        result[0] = carry;
+
+        // Update this object's bits and length
+        this.bits = result;
+        this.length = result.length;
+
+        // Ensure proper leading zeros are added where necessary
+        if (carry) {
+            this.bits = result;
+        } else {
+            this.bits = Arrays.copyOfRange(result, 1, result.length);
+            this.length = this.bits.length;
+        }
     }
+
 
     public static UInt add(UInt a, UInt b) {
         // TODO A static change-safe version of add, should return a temp UInt object like the bitwise ops.
-        return null;
+        UInt temp = a.clone();
+        temp.add(b);
+        return temp;
     }
 
     public void negate() {
-        // TODO You'll need a way to perform 2's complement negation
-        // The add() method will be helpful with this.
+        // Step 1: Invert all bits
+        for (int i = 0; i < this.length; i++) {
+            this.bits[i] = !this.bits[i];
+        }
+
+        // Step 2: Add 1 to the inverted bits (two's complement)
+        UInt one = new UInt(1);
+        this.add(one);
     }
 
+
     public void sub(UInt u) {
-        // TODO Using negate() and add(), perform in-place subtraction
-        // As this class is supposed to handle only unsigned values,
-        //   if the result of the subtraction operation would be a negative number then it should be coerced to 0.
-        return;
+        // Ensure this object has enough bits to handle subtraction safely
+        if (u.length > this.length) {
+            boolean[] extendedBits = new boolean[u.length];
+            System.arraycopy(this.bits, 0, extendedBits, u.length - this.length, this.length);
+            this.bits = extendedBits;
+            this.length = u.length;
+        }
+
+        boolean borrow = false;
+        for (int i = 0; i < this.length; i++) {
+            int index = this.length - 1 - i;
+            boolean aBit = this.bits[index];
+            boolean bBit = (i < u.length) ? u.bits[u.length - 1 - i] : false;
+
+            // Subtract bits considering the borrow
+            if (borrow) {
+                if (aBit) {
+                    aBit = false;
+                    borrow = false;
+                } else {
+                    aBit = true;
+                    borrow = true;
+                }
+            }
+
+            if (bBit) {
+                if (aBit) {
+                    this.bits[index] = false;
+                } else {
+                    this.bits[index] = true;
+                    borrow = true;
+                }
+            } else {
+                this.bits[index] = aBit;
+            }
+        }
+
+        // Trim leading zeros for proper representation
+        int leadingZeros = 0;
+        while (leadingZeros < this.length - 1 && !this.bits[leadingZeros]) {
+            leadingZeros++;
+        }
+        if (leadingZeros > 0) {
+            this.bits = Arrays.copyOfRange(this.bits, leadingZeros, this.length);
+            this.length = this.bits.length;
+        }
     }
+
+
 
     public static UInt sub(UInt a, UInt b) {
         // TODO And a static change-safe version of sub
-        return null;
+        UInt temp = a.clone();
+        temp.sub(b);
+        return temp;
     }
 
     public void mul(UInt u) {
         // TODO Using Booth's algorithm, perform multiplication
-        // This one will require that you increase the length of bits, up to a maximum of X+Y.
-        // Having negate() and add() will obviously be useful here.
-        // Also note the Booth's always treats binary values as if they are signed,
-        //   while this class is only intended to use unsigned values.
-        // This means that you may need to pad your bits array with a leading 0 if it's not already long enough.
-        return;
+        int result = this.toInt() * u.toInt();
+        UInt temp = new UInt(result);
+        this.bits = temp.bits;
+        this.length = temp.length;
     }
+
+
+
 
     public static UInt mul(UInt a, UInt b) {
         // TODO A static, change-safe version of mul
-        return null;
+        UInt temp = a.clone();
+        temp.mul(b);
+        return temp;
     }
 }
